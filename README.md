@@ -22,19 +22,15 @@ A Gemini CLI extension that converts AI responses into speech using macOS's buil
 
 ## Quick Start
 
-### Option A: Install from npm (Recommended)
+### Install from GitHub (Recommended)
 
 ```bash
-npm install -g agent-speech-gemini-cli
+gemini extensions install https://github.com/welico/agent-speech-gemini-cli.git
 ```
 
-Then add the extension to Gemini CLI:
+That's it! The extension is self-contained — no `npm install` needed.
 
-```bash
-gemini extensions install agent-speech-gemini-cli
-```
-
-### Option B: Manual Installation
+### Manual Installation
 
 ```bash
 git clone https://github.com/welico/agent-speech-gemini-cli.git
@@ -149,9 +145,9 @@ Convert text to speech using macOS TTS.
 
 ```bash
 npm install       # Install dependencies
-npm run build     # Build TypeScript
-npm run dev       # Watch mode
+npm run build     # Bundle with esbuild (self-contained dist/)
 npm run typecheck # Type check without emitting
+npm run dev       # Watch mode (tsc)
 ```
 
 ### Project Structure

@@ -1,6 +1,6 @@
 {
   "name": "agent-speech-gemini-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Gemini CLI text-to-speech extension using macOS native say command",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,11 +18,11 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node esbuild.config.mjs",
+    "build:types": "tsc --emitDeclarationOnly",
     "dev": "tsc --watch",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "npm run build"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "mcp",
@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "esbuild": "^0.27.3",
     "typescript": "^5.3.3"
   },
   "dependencies": {
@@ -51,6 +52,7 @@
     "dist",
     "gemini-extension.json",
     "GEMINI.md",
+    "esbuild.config.mjs",
     "package.json",
     "README.md",
     "LICENSE"
