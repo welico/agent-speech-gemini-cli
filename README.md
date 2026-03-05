@@ -1,1 +1,1 @@
-# agent-speech-gemini
+# agent-speech-gemini-cli
