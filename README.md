@@ -1,78 +1,65 @@
 # agent-speech-gemini-cli
 
-> **Text-to-speech extension for Gemini CLI**
-> **Platform**: macOS | **Integration**: MCP Server
-> **Repository**: https://github.com/welico/agent-speech-gemini-cli
+[![Version](https://img.shields.io/github/v/release/welico/agent-speech-gemini-cli?label=version)](https://github.com/welico/agent-speech-gemini-cli/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#prerequisites)
+[![Gemini CLI](https://img.shields.io/badge/Gemini%20CLI-Extension-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
+[![MCP](https://img.shields.io/badge/MCP-Server-orange.svg)](https://modelcontextprotocol.io/)
+
+> Text-to-speech extension for Gemini CLI using macOS native `say` command.
 
 ---
 
-## Overview
-
-A Gemini CLI extension that converts AI responses into speech using macOS's built-in `say` command. Perfect for developers who prefer listening to long responses or want audio confirmation while multitasking.
-
-### Key Features
-
-- **macOS Native TTS** — Uses built-in `say` command (no external dependencies)
-- **Non-Blocking** — Runs asynchronously without interfering with CLI operation
-- **Configurable** — Adjustable voice, rate (50-400 WPM), and volume (0-100)
-- **Privacy-Conscious** — Optional filtering for sensitive information
-- **Gemini CLI Extension** — Native extension format with MCP server integration
-
----
-
-## Quick Start
-
-### Install from GitHub (Recommended)
+## Installation
 
 ```bash
 gemini extensions install https://github.com/welico/agent-speech-gemini-cli.git
 ```
 
-That's it! The extension is self-contained — no `npm install` needed.
+That's it. The extension is self-contained — no `npm install` or build step needed.
 
-### Manual Installation
+### Verify
 
-```bash
-git clone https://github.com/welico/agent-speech-gemini-cli.git
-cd agent-speech-gemini-cli
-npm install
-npm run build
+In Gemini CLI, ask:
+
 ```
-
-Configure Gemini CLI to use the extension by adding to your Gemini CLI settings:
-
-```json
-{
-  "mcpServers": {
-    "agent-speech": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/agent-speech-gemini-cli/dist/mcp-server.js"]
-    }
-  }
-}
+Say "Hello World"
 ```
-
-### Test It
-
-In Gemini CLI, ask: **"Say 'Hello World'"**
 
 Gemini will use the `speak_text` tool to read the response aloud.
+
+### Uninstall
+
+```bash
+gemini extensions uninstall agent-speech
+```
+
+---
+
+## Features
+
+- **macOS Native TTS** — Uses built-in `say` command, zero external dependencies
+- **Non-Blocking** — Async speech, never blocks CLI interaction
+- **Configurable** — Voice, rate (50–400 WPM), volume (0–100)
+- **Privacy-Conscious** — Optional sensitive content filtering
+- **Self-Contained** — All dependencies bundled, installs from git in one command
 
 ---
 
 ## Prerequisites
 
-- **macOS 10.15+** (Catalina or later)
-- **Node.js 18+**
-- **Gemini CLI**
+| Requirement | Version |
+|---|---|
+| macOS | 10.15+ (Catalina or later) |
+| Node.js | 18+ |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Latest |
 
 ---
 
 ## Configuration
 
-### Config File
-
-Configuration is stored at: `~/.agent-speech/config.json`
+Config file: `~/.agent-speech/config.json`
 
 ```json
 {
@@ -87,11 +74,11 @@ Configuration is stored at: `~/.agent-speech/config.json`
 
 ### Environment Variables
 
-| Variable    | Purpose                               | Default                         |
-|-------------|---------------------------------------|---------------------------------|
-| `DEBUG`     | Enable debug logging to stderr        | `false`                         |
-| `LOG_FILE`  | Path to debug log file                | `/tmp/agent-speech-debug.log`   |
-| `LOG_LEVEL` | Minimum log level (debug/info/warn/error) | `debug`                     |
+| Variable | Purpose | Default |
+|---|---|---|
+| `DEBUG` | Enable debug logging to stderr | `false` |
+| `LOG_FILE` | Path to debug log file | `/tmp/agent-speech-debug.log` |
+| `LOG_LEVEL` | Minimum log level (`debug` / `info` / `warn` / `error`) | `debug` |
 
 ---
 
@@ -121,12 +108,12 @@ agent-speech help              # Show help
 
 Convert text to speech using macOS TTS.
 
-| Parameter | Type   | Required | Description                                 |
-|-----------|--------|----------|---------------------------------------------|
-| `text`    | string | Yes      | Text to speak                               |
-| `voice`   | string | No       | Voice name (e.g., Samantha, Alex, Victoria) |
-| `rate`    | number | No       | Speech rate in words per minute (50-400)    |
-| `volume`  | number | No       | Volume level (0-100)                        |
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `text` | string | Yes | Text to speak |
+| `voice` | string | No | Voice name (e.g., Samantha, Alex, Victoria) |
+| `rate` | number | No | Speech rate in words per minute (50–400) |
+| `volume` | number | No | Volume level (0–100) |
 
 **Example:**
 
@@ -141,13 +128,40 @@ Convert text to speech using macOS TTS.
 
 ---
 
+## Alternative Installation
+
+### Manual (MCP server config)
+
+```bash
+git clone https://github.com/welico/agent-speech-gemini-cli.git
+cd agent-speech-gemini-cli
+npm install
+npm run build
+```
+
+Add to your Gemini CLI settings (`~/.gemini/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "agent-speech": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/agent-speech-gemini-cli/dist/mcp-server.js"]
+    }
+  }
+}
+```
+
+---
+
 ## Development
 
 ```bash
-npm install       # Install dependencies
-npm run build     # Bundle with esbuild (self-contained dist/)
-npm run typecheck # Type check without emitting
-npm run dev       # Watch mode (tsc)
+npm install          # Install dependencies
+npm run build        # Bundle with esbuild (self-contained dist/)
+npm run build:types  # Generate .d.ts declarations
+npm run typecheck    # Type check without emitting
+npm run dev          # Watch mode (tsc)
 ```
 
 ### Project Structure
@@ -170,9 +184,10 @@ agent-speech-gemini-cli/
 │   ├── mcp-server.ts      # MCP server entry point
 │   ├── cli.ts             # CLI entry point
 │   └── index.ts           # Package exports
-├── gemini-extension.json  # Gemini CLI extension manifest
-├── GEMINI.md              # Extension context file
-└── dist/                  # Compiled output
+├── esbuild.config.mjs     # Build config (bundles all deps)
+├── gemini-extension.json   # Gemini CLI extension manifest
+├── GEMINI.md               # Extension context file
+└── dist/                   # Bundled output (committed)
 ```
 
 ---
@@ -181,9 +196,9 @@ agent-speech-gemini-cli/
 
 ### Extension not loading
 
-1. Verify `dist/mcp-server.js` exists (`npm run build`)
-2. Check that paths are **absolute** in config
-3. Restart Gemini CLI after configuration changes
+1. Verify the extension is installed: `gemini extensions list`
+2. Reinstall: `gemini extensions uninstall agent-speech && gemini extensions install https://github.com/welico/agent-speech-gemini-cli.git`
+3. Restart Gemini CLI after installation
 
 ### No speech output
 
