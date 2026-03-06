@@ -29,6 +29,16 @@ Say "Hello World"
 
 Gemini will use the `speak_text` tool to read the response aloud.
 
+### Slash Command
+
+After install/update, you can run Agent Speech with a slash command:
+
+```text
+/agent-speech status
+/agent-speech enable
+/agent-speech set-voice Samantha
+```
+
 ### Uninstall
 
 ```bash
@@ -184,6 +194,8 @@ agent-speech-gemini-cli/
 │   ├── mcp-server.ts      # MCP server entry point
 │   ├── cli.ts             # CLI entry point
 │   └── index.ts           # Package exports
+├── commands/
+│   └── agent-speech.toml  # Slash command: /agent-speech <args>
 ├── esbuild.config.mjs     # Build config (bundles all deps)
 ├── gemini-extension.json   # Gemini CLI extension manifest
 ├── GEMINI.md               # Extension context file

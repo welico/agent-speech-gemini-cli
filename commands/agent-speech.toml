@@ -1,0 +1,7 @@
+description = "Control Agent Speech extension from slash command"
+prompt = """
+Run the local Agent Speech CLI and return the output exactly.
+
+Command:
+!{agent-speech {{args}}}
+"""
