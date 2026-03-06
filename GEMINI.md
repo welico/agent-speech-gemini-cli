@@ -34,14 +34,20 @@ Converts text to speech using macOS native TTS.
 
 Manages Agent Speech settings without shell command execution.
 
-**When to use**: Call this tool when the user requests configuration actions like status, enable/disable, voice/rate/volume updates, reset, or list voices.
+**When to use**: Call this tool when the user requests configuration actions like enable/disable, voice/rate/volume updates, reset, or list voices.
 
 **Parameters:**
 
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| `action`  | string | Yes      | One of: `status`, `enable`, `disable`, `toggle`, `reset`, `set_voice`, `set_rate`, `set_volume`, `list_voices` |
+| `action`  | string | Yes      | One of: `enable`, `disable`, `toggle`, `reset`, `set_voice`, `set_rate`, `set_volume`, `list_voices` |
 | `value`   | string/number | No | Value for `set_voice`, `set_rate`, `set_volume` |
+
+### `agent_speech_status`
+
+Returns current Agent Speech settings (read-only).
+
+**When to use**: Call this tool for status queries, especially `/agent-speech status`.
 
 ## Guidelines
 

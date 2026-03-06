@@ -1,9 +1,12 @@
 description = "Control Agent Speech without shell approval prompts"
 prompt = """
-Interpret `{{args}}` and call MCP tool `agent_speech_command`.
+Interpret `{{args}}` and call MCP tools as follows:
+
+- If args are exactly `status`, call `agent_speech_status` with empty arguments.
+- Otherwise call `agent_speech_command`.
 
 Supported forms:
-- `status` -> action: status
+- `status` -> call `agent_speech_status`
 - `enable` -> action: enable
 - `disable` -> action: disable
 - `toggle` -> action: toggle

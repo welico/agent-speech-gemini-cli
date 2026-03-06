@@ -11,6 +11,7 @@ import { withErrorHandling } from '../utils/error-handler.js';
 import { safeValidateSpeakTextInput, safeValidateAgentSpeechCommandInput } from '../utils/schemas.js';
 
 const SPEAK_TOOL_NAME = 'speak_text';
+const STATUS_TOOL_NAME = 'agent_speech_status';
 const CONTROL_TOOL_NAME = 'agent_speech_command';
 
 export class MCPServer {
@@ -23,7 +24,7 @@ export class MCPServer {
     this.server = new Server(
       {
         name: 'agent-speech',
-        version: '0.1.4',
+        version: '0.1.5',
       },
       {
         capabilities: {
@@ -68,6 +69,10 @@ export class MCPServer {
           return this.handleSpeak(args);
         }
 
+        if (name === STATUS_TOOL_NAME) {
+          return this.handleStatus();
+        }
+
         if (name === CONTROL_TOOL_NAME) {
           return this.handleControl(args);
         }
@@ -94,6 +99,18 @@ export class MCPServer {
               name: SPEAK_TOOL_NAME,
               description: 'Convert text to speech using macOS TTS',
               inputSchema: this.getSpeakToolInputSchema(),
+            },
+            {
+              name: STATUS_TOOL_NAME,
+              description: 'Read-only status of current agent-speech settings',
+              annotations: {
+                readOnlyHint: true,
+              },
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+              },
             },
             {
               name: CONTROL_TOOL_NAME,
@@ -138,7 +155,6 @@ export class MCPServer {
         action: {
           type: 'string',
           enum: [
-            'status',
             'enable',
             'disable',
             'toggle',
@@ -208,6 +224,37 @@ export class MCPServer {
     }, this.logger);
   }
 
+  private async handleStatus(): Promise<{
+    content: Array<{ type: string; text: string }>;
+  }> {
+    return withErrorHandling('handleStatus', async () => {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: this.formatStatusText(),
+          },
+        ],
+      };
+    }, this.logger);
+  }
+
+  private formatStatusText(): string {
+    const settings = this.config.getAll();
+    return [
+      'Agent Speech status',
+      `enabled: ${settings.enabled}`,
+      `voice: ${settings.voice}`,
+      `rate: ${settings.rate}`,
+      `volume: ${settings.volume}`,
+      `minLength: ${settings.minLength}`,
+      `maxLength: ${settings.maxLength || 'unlimited'}`,
+      `filterSensitive: ${settings.filters.sensitive}`,
+      `skipCodeBlocks: ${settings.filters.skipCodeBlocks}`,
+      `skipCommands: ${settings.filters.skipCommands}`,
+    ].join('\n');
+  }
+
   private async handleControl(args: unknown): Promise<{
     content: Array<{ type: string; text: string }>;
   }> {
@@ -220,28 +267,6 @@ export class MCPServer {
       const { action, value } = validation.data;
 
       switch (action) {
-        case 'status': {
-          const settings = this.config.getAll();
-          return {
-            content: [
-              {
-                type: 'text',
-                text: [
-                  'Agent Speech status',
-                  `enabled: ${settings.enabled}`,
-                  `voice: ${settings.voice}`,
-                  `rate: ${settings.rate}`,
-                  `volume: ${settings.volume}`,
-                  `minLength: ${settings.minLength}`,
-                  `maxLength: ${settings.maxLength || 'unlimited'}`,
-                  `filterSensitive: ${settings.filters.sensitive}`,
-                  `skipCodeBlocks: ${settings.filters.skipCodeBlocks}`,
-                  `skipCommands: ${settings.filters.skipCommands}`,
-                ].join('\n'),
-              },
-            ],
-          };
-        }
         case 'enable': {
           this.config.set('enabled', true);
           await this.config.save();
@@ -294,6 +319,8 @@ export class MCPServer {
             : voices.map((voice) => `${voice.name} (${voice.language})`).join('\n');
           return { content: [{ type: 'text', text }] };
         }
+        default:
+          throw new Error(`Unsupported action: ${action}`);
       }
     }, this.logger);
   }

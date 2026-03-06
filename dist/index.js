@@ -19315,7 +19315,6 @@ var ToolConfigSchema = external_exports.object({
 });
 var AgentSpeechCommandInputSchema = external_exports.object({
   action: external_exports.enum([
-    "status",
     "enable",
     "disable",
     "toggle",
@@ -19341,6 +19340,7 @@ __name(safeValidateAgentSpeechCommandInput, "safeValidateAgentSpeechCommandInput
 
 // src/infrastructure/mcp-server.ts
 var SPEAK_TOOL_NAME = "speak_text";
+var STATUS_TOOL_NAME = "agent_speech_status";
 var CONTROL_TOOL_NAME = "agent_speech_command";
 var MCPServer = class {
   static {
@@ -19354,7 +19354,7 @@ var MCPServer = class {
     this.server = new Server(
       {
         name: "agent-speech",
-        version: "0.1.4"
+        version: "0.1.5"
       },
       {
         capabilities: {
@@ -19391,6 +19391,9 @@ var MCPServer = class {
         if (name === SPEAK_TOOL_NAME) {
           return this.handleSpeak(args);
         }
+        if (name === STATUS_TOOL_NAME) {
+          return this.handleStatus();
+        }
         if (name === CONTROL_TOOL_NAME) {
           return this.handleControl(args);
         }
@@ -19415,6 +19418,18 @@ var MCPServer = class {
               name: SPEAK_TOOL_NAME,
               description: "Convert text to speech using macOS TTS",
               inputSchema: this.getSpeakToolInputSchema()
+            },
+            {
+              name: STATUS_TOOL_NAME,
+              description: "Read-only status of current agent-speech settings",
+              annotations: {
+                readOnlyHint: true
+              },
+              inputSchema: {
+                type: "object",
+                properties: {},
+                required: []
+              }
             },
             {
               name: CONTROL_TOOL_NAME,
@@ -19457,7 +19472,6 @@ var MCPServer = class {
         action: {
           type: "string",
           enum: [
-            "status",
             "enable",
             "disable",
             "toggle",
@@ -19516,6 +19530,33 @@ var MCPServer = class {
       };
     }, this.logger);
   }
+  async handleStatus() {
+    return withErrorHandling("handleStatus", async () => {
+      return {
+        content: [
+          {
+            type: "text",
+            text: this.formatStatusText()
+          }
+        ]
+      };
+    }, this.logger);
+  }
+  formatStatusText() {
+    const settings = this.config.getAll();
+    return [
+      "Agent Speech status",
+      `enabled: ${settings.enabled}`,
+      `voice: ${settings.voice}`,
+      `rate: ${settings.rate}`,
+      `volume: ${settings.volume}`,
+      `minLength: ${settings.minLength}`,
+      `maxLength: ${settings.maxLength || "unlimited"}`,
+      `filterSensitive: ${settings.filters.sensitive}`,
+      `skipCodeBlocks: ${settings.filters.skipCodeBlocks}`,
+      `skipCommands: ${settings.filters.skipCommands}`
+    ].join("\n");
+  }
   async handleControl(args) {
     return withErrorHandling("handleControl", async () => {
       const validation = safeValidateAgentSpeechCommandInput(args);
@@ -19524,28 +19565,6 @@ var MCPServer = class {
       }
       const { action, value } = validation.data;
       switch (action) {
-        case "status": {
-          const settings = this.config.getAll();
-          return {
-            content: [
-              {
-                type: "text",
-                text: [
-                  "Agent Speech status",
-                  `enabled: ${settings.enabled}`,
-                  `voice: ${settings.voice}`,
-                  `rate: ${settings.rate}`,
-                  `volume: ${settings.volume}`,
-                  `minLength: ${settings.minLength}`,
-                  `maxLength: ${settings.maxLength || "unlimited"}`,
-                  `filterSensitive: ${settings.filters.sensitive}`,
-                  `skipCodeBlocks: ${settings.filters.skipCodeBlocks}`,
-                  `skipCommands: ${settings.filters.skipCommands}`
-                ].join("\n")
-              }
-            ]
-          };
-        }
         case "enable": {
           this.config.set("enabled", true);
           await this.config.save();
@@ -19596,6 +19615,8 @@ var MCPServer = class {
           const text = voices.length === 0 ? "No voices available." : voices.map((voice) => `${voice.name} (${voice.language})`).join("\n");
           return { content: [{ type: "text", text }] };
         }
+        default:
+          throw new Error(`Unsupported action: ${action}`);
       }
     }, this.logger);
   }

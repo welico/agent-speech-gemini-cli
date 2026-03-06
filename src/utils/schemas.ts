@@ -85,7 +85,6 @@ export function validateToolConfig(data: unknown): ToolConfig {
 
 export const AgentSpeechCommandInputSchema = z.object({
   action: z.enum([
-    'status',
     'enable',
     'disable',
     'toggle',

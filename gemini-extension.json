@@ -1,7 +1,7 @@
 {
   "name": "agent-speech",
   "description": "Text-to-speech extension for Gemini CLI using macOS native say command. Converts AI responses into speech with configurable voice, rate, and volume.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "mcpServers": {
     "agent-speech": {
       "command": "node",
