@@ -19323,7 +19323,7 @@ var MCPServer = class {
   constructor() {
     this.server = new Server(
       {
-        name: "agent-speech-gemini-cli",
+        name: "agent-speech",
         version: "0.1.1"
       },
       {
