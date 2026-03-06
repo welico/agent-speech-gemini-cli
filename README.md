@@ -42,6 +42,8 @@ After install/update, you can run Agent Speech with a slash command:
 
 These slash commands call MCP tools directly and do not require shell-execution approval prompts.
 
+Gemini assistant responses are also spoken automatically after each completed turn.
+
 ### Uninstall
 
 ```bash
@@ -57,6 +59,7 @@ gemini extensions uninstall agent-speech
 - **Configurable** — Voice, rate (50–400 WPM), volume (0–100)
 - **Privacy-Conscious** — Optional sensitive content filtering
 - **Self-Contained** — All dependencies bundled, installs from git in one command
+- **Auto Read Responses** — AfterAgent hook reads completed Gemini responses aloud
 
 ---
 

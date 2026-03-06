@@ -19355,7 +19355,7 @@ var MCPServer = class {
     this.server = new Server(
       {
         name: "agent-speech",
-        version: "0.1.6"
+        version: "0.1.7"
       },
       {
         capabilities: {

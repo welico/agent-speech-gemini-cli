@@ -61,7 +61,14 @@ async function build() {
     outfile: 'dist/index.js',
   });
 
-  console.log('Build complete: dist/mcp-server.js, dist/cli.js, dist/index.js');
+  // AfterAgent hook entry point
+  await esbuild.build({
+    ...shared,
+    entryPoints: ['src/hooks/after-agent.ts'],
+    outfile: 'dist/after-agent-hook.js',
+  });
+
+  console.log('Build complete: dist/mcp-server.js, dist/cli.js, dist/index.js, dist/after-agent-hook.js');
 }
 
 build().catch((err) => {

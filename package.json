@@ -1,6 +1,6 @@
 {
   "name": "agent-speech-gemini-cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Gemini CLI text-to-speech extension using macOS native say command",
   "type": "module",
   "main": "./dist/index.js",
@@ -50,6 +50,7 @@
   },
   "files": [
     "dist",
+    "hooks",
     "gemini-extension.json",
     "GEMINI.md",
     "esbuild.config.mjs",

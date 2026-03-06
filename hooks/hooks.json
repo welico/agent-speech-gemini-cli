@@ -1,0 +1,17 @@
+{
+  "description": "Agent Speech hooks",
+  "hooks": {
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "name": "agent-speech-after-agent",
+            "type": "command",
+            "command": "node ${extensionPath}/dist/after-agent-hook.js",
+            "timeout": 15000
+          }
+        ]
+      }
+    ]
+  }
+}
