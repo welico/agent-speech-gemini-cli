@@ -19313,9 +19313,35 @@ var ToolConfigSchema = external_exports.object({
   volume: external_exports.number().min(0).max(100).optional(),
   minLength: external_exports.number().min(0).optional()
 });
+var AgentSpeechCommandInputSchema = external_exports.object({
+  action: external_exports.enum([
+    "status",
+    "enable",
+    "disable",
+    "toggle",
+    "reset",
+    "set_voice",
+    "set_rate",
+    "set_volume",
+    "list_voices"
+  ]),
+  value: external_exports.union([external_exports.string(), external_exports.number()]).optional()
+});
+function safeValidateAgentSpeechCommandInput(data) {
+  const result = AgentSpeechCommandInputSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return {
+    success: false,
+    error: result.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")
+  };
+}
+__name(safeValidateAgentSpeechCommandInput, "safeValidateAgentSpeechCommandInput");
 
 // src/infrastructure/mcp-server.ts
 var SPEAK_TOOL_NAME = "speak_text";
+var CONTROL_TOOL_NAME = "agent_speech_command";
 var MCPServer = class {
   static {
     __name(this, "MCPServer");
@@ -19328,7 +19354,7 @@ var MCPServer = class {
     this.server = new Server(
       {
         name: "agent-speech",
-        version: "0.1.3"
+        version: "0.1.4"
       },
       {
         capabilities: {
@@ -19365,6 +19391,9 @@ var MCPServer = class {
         if (name === SPEAK_TOOL_NAME) {
           return this.handleSpeak(args);
         }
+        if (name === CONTROL_TOOL_NAME) {
+          return this.handleControl(args);
+        }
         return {
           content: [
             {
@@ -19385,14 +19414,19 @@ var MCPServer = class {
             {
               name: SPEAK_TOOL_NAME,
               description: "Convert text to speech using macOS TTS",
-              inputSchema: this.getToolInputSchema()
+              inputSchema: this.getSpeakToolInputSchema()
+            },
+            {
+              name: CONTROL_TOOL_NAME,
+              description: "Manage agent-speech settings without shell command execution",
+              inputSchema: this.getControlToolInputSchema()
             }
           ]
         };
       }
     );
   }
-  getToolInputSchema() {
+  getSpeakToolInputSchema() {
     return {
       type: "object",
       properties: {
@@ -19414,6 +19448,36 @@ var MCPServer = class {
         }
       },
       required: ["text"]
+    };
+  }
+  getControlToolInputSchema() {
+    return {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: [
+            "status",
+            "enable",
+            "disable",
+            "toggle",
+            "reset",
+            "set_voice",
+            "set_rate",
+            "set_volume",
+            "list_voices"
+          ],
+          description: "Control action for agent-speech settings"
+        },
+        value: {
+          oneOf: [
+            { type: "string" },
+            { type: "number" }
+          ],
+          description: "Optional action value (voice name, rate, or volume)"
+        }
+      },
+      required: ["action"]
     };
   }
   async handleSpeak(args) {
@@ -19450,6 +19514,89 @@ var MCPServer = class {
           }
         ]
       };
+    }, this.logger);
+  }
+  async handleControl(args) {
+    return withErrorHandling("handleControl", async () => {
+      const validation = safeValidateAgentSpeechCommandInput(args);
+      if (!validation.success) {
+        throw new Error(validation.error);
+      }
+      const { action, value } = validation.data;
+      switch (action) {
+        case "status": {
+          const settings = this.config.getAll();
+          return {
+            content: [
+              {
+                type: "text",
+                text: [
+                  "Agent Speech status",
+                  `enabled: ${settings.enabled}`,
+                  `voice: ${settings.voice}`,
+                  `rate: ${settings.rate}`,
+                  `volume: ${settings.volume}`,
+                  `minLength: ${settings.minLength}`,
+                  `maxLength: ${settings.maxLength || "unlimited"}`,
+                  `filterSensitive: ${settings.filters.sensitive}`,
+                  `skipCodeBlocks: ${settings.filters.skipCodeBlocks}`,
+                  `skipCommands: ${settings.filters.skipCommands}`
+                ].join("\n")
+              }
+            ]
+          };
+        }
+        case "enable": {
+          this.config.set("enabled", true);
+          await this.config.save();
+          return { content: [{ type: "text", text: "Agent Speech enabled." }] };
+        }
+        case "disable": {
+          this.config.set("enabled", false);
+          await this.config.save();
+          return { content: [{ type: "text", text: "Agent Speech disabled." }] };
+        }
+        case "toggle": {
+          const next = !this.config.get("enabled");
+          this.config.set("enabled", next);
+          await this.config.save();
+          return { content: [{ type: "text", text: `Agent Speech ${next ? "enabled" : "disabled"}.` }] };
+        }
+        case "reset": {
+          this.config.reset();
+          await this.config.save();
+          return { content: [{ type: "text", text: "Agent Speech settings reset to defaults." }] };
+        }
+        case "set_voice": {
+          if (typeof value !== "string" || !value.trim()) {
+            throw new Error("set_voice requires a non-empty string value");
+          }
+          this.config.set("voice", value.trim());
+          await this.config.save();
+          return { content: [{ type: "text", text: `Voice set to ${value.trim()}.` }] };
+        }
+        case "set_rate": {
+          if (typeof value !== "number" || value < 50 || value > 400) {
+            throw new Error("set_rate requires a number between 50 and 400");
+          }
+          this.config.set("rate", value);
+          await this.config.save();
+          return { content: [{ type: "text", text: `Rate set to ${value}.` }] };
+        }
+        case "set_volume": {
+          if (typeof value !== "number" || value < 0 || value > 100) {
+            throw new Error("set_volume requires a number between 0 and 100");
+          }
+          this.config.set("volume", value);
+          await this.config.save();
+          return { content: [{ type: "text", text: `Volume set to ${value}.` }] };
+        }
+        case "list_voices": {
+          const voices = await this.tts.getAvailableVoices();
+          const text = voices.length === 0 ? "No voices available." : voices.map((voice) => `${voice.name} (${voice.language})`).join("\n");
+          return { content: [{ type: "text", text }] };
+        }
+      }
     }, this.logger);
   }
 };

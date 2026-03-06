@@ -82,3 +82,33 @@ export type ToolConfig = z.infer<typeof ToolConfigSchema>;
 export function validateToolConfig(data: unknown): ToolConfig {
   return ToolConfigSchema.parse(data);
 }
+
+export const AgentSpeechCommandInputSchema = z.object({
+  action: z.enum([
+    'status',
+    'enable',
+    'disable',
+    'toggle',
+    'reset',
+    'set_voice',
+    'set_rate',
+    'set_volume',
+    'list_voices',
+  ]),
+  value: z.union([z.string(), z.number()]).optional(),
+});
+
+export type AgentSpeechCommandInput = z.infer<typeof AgentSpeechCommandInputSchema>;
+
+export function safeValidateAgentSpeechCommandInput(
+  data: unknown
+): { success: true; data: AgentSpeechCommandInput } | { success: false; error: string } {
+  const result = AgentSpeechCommandInputSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return {
+    success: false,
+    error: result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+  };
+}

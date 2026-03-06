@@ -1,7 +1,17 @@
-description = "Control Agent Speech extension from slash command"
+description = "Control Agent Speech without shell approval prompts"
 prompt = """
-Run the local Agent Speech CLI and return the output exactly.
+Interpret `{{args}}` and call MCP tool `agent_speech_command`.
 
-Command:
-!{agent-speech {{args}}}
+Supported forms:
+- `status` -> action: status
+- `enable` -> action: enable
+- `disable` -> action: disable
+- `toggle` -> action: toggle
+- `reset` -> action: reset
+- `set-voice <name>` -> action: set_voice, value: <name>
+- `set-rate <50-400>` -> action: set_rate, value: <number>
+- `set-volume <0-100>` -> action: set_volume, value: <number>
+- `list-voices` -> action: list_voices
+
+If args are invalid, show concise usage examples.
 """

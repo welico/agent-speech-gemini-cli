@@ -39,6 +39,8 @@ After install/update, you can run Agent Speech with a slash command:
 /agent-speech set-voice Samantha
 ```
 
+These slash commands call MCP tools directly and do not require shell-execution approval prompts.
+
 ### Uninstall
 
 ```bash
