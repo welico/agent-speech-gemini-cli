@@ -1,6 +1,7 @@
 import { ConfigManager } from '../core/config.js';
 import { TextToSpeech } from '../core/tts.js';
 import { getConfigDir, readJSON } from '../infrastructure/fs.js';
+import { summarizeForSpeech } from '../utils/summary.js';
 
 type HookInput = {
   prompt_response?: string;
@@ -59,7 +60,13 @@ async function main(): Promise<void> {
     }
 
     const input = JSON.parse(raw) as HookInput;
-    const text = (input.prompt_response || input.response || input.text || '').trim();
+    const responseText = (input.prompt_response || input.response || input.text || '').trim();
+    if (!responseText) {
+      process.stdout.write(JSON.stringify(output));
+      return;
+    }
+
+    const text = summarizeForSpeech(responseText);
     if (!text) {
       process.stdout.write(JSON.stringify(output));
       return;

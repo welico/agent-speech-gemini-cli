@@ -692,6 +692,59 @@ var TextToSpeech = class {
   }
 };
 
+// src/utils/summary.ts
+function truncateText(text, maxChars) {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  const slice = text.slice(0, maxChars);
+  const lastBreak = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "), slice.lastIndexOf(" "));
+  if (lastBreak < 80) {
+    return `${slice.trim()}...`;
+  }
+  return `${slice.slice(0, lastBreak).trim()}...`;
+}
+__name(truncateText, "truncateText");
+function cleanupMarkdown(input) {
+  return input.replace(/```[\s\S]*?```/g, " ").replace(/`[^`]*`/g, " ").replace(/^#{1,6}\s+/gm, "").replace(/^\|.*\|$/gm, " ").replace(/^\s*[-*]\s+/gm, "- ").replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
+__name(cleanupMarkdown, "cleanupMarkdown");
+function pickCoreLines(text) {
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  const bullets = lines.filter((line) => /^(-\s|\d+\.\s|✅|⏭️|💡)/.test(line));
+  if (bullets.length > 0) {
+    return bullets.slice(0, 3);
+  }
+  return lines.slice(0, 3);
+}
+__name(pickCoreLines, "pickCoreLines");
+function normalizeForSpeech(text) {
+  return text.replace(/^[-*]\s+/gm, "").replace(/✅\s*Used:\s*/g, "Used: ").replace(/⏭️\s*Not Used:\s*/g, "Not used: ").replace(/💡\s*Recommended:\s*/g, "Recommended: ").replace(/\s+/g, " ").replace(/\.\./g, ".").trim();
+}
+__name(normalizeForSpeech, "normalizeForSpeech");
+function summarizeForSpeech(input, maxChars = 320) {
+  const cleaned = cleanupMarkdown(input);
+  if (!cleaned) {
+    return "";
+  }
+  const marker = "\u{1F4CA} bkit Feature Usage";
+  const markerIndex = cleaned.indexOf(marker);
+  const hasBkitFooter = markerIndex >= 0;
+  const body = hasBkitFooter ? cleaned.slice(0, markerIndex).trim() : cleaned;
+  const footer = hasBkitFooter ? cleaned.slice(markerIndex).trim() : "";
+  const source = body || cleaned;
+  const core = pickCoreLines(source).join(". ");
+  let summary = normalizeForSpeech(core);
+  if (hasBkitFooter) {
+    const usedMatch = footer.match(/✅\s*Used:\s*([^\n]+)/);
+    if (usedMatch?.[1]?.trim()) {
+      summary = `${summary}. Used: ${usedMatch[1].trim()}.`;
+    }
+  }
+  return truncateText(summary, maxChars);
+}
+__name(summarizeForSpeech, "summarizeForSpeech");
+
 // src/hooks/after-agent.ts
 async function readStdin() {
   return new Promise((resolve, reject) => {
@@ -730,7 +783,12 @@ async function main() {
       return;
     }
     const input = JSON.parse(raw);
-    const text = (input.prompt_response || input.response || input.text || "").trim();
+    const responseText = (input.prompt_response || input.response || input.text || "").trim();
+    if (!responseText) {
+      process.stdout.write(JSON.stringify(output));
+      return;
+    }
+    const text = summarizeForSpeech(responseText);
     if (!text) {
       process.stdout.write(JSON.stringify(output));
       return;
