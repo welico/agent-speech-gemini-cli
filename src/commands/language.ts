@@ -1,87 +1,30 @@
-import { readJSON, writeJSON, getConfigPath } from '../infrastructure/fs.js';
-import readline from 'readline';
+import { ConfigManager } from '../core/config.js';
+import { SUPPORTED_LANGUAGES, getLanguageName, isSupportedLanguage, normalizeLanguageCode } from '../utils/language.js';
 
-const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'ko', name: 'Korean' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'zh', name: 'Chinese (Simplified)' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-] as const;
+export async function cmdLanguage(code?: string): Promise<number> {
+  const config = new ConfigManager();
+  await config.init();
 
-export async function cmdLanguage(): Promise<number> {
-  console.log('\nAvailable languages:');
-  SUPPORTED_LANGUAGES.forEach((lang, index) => {
-    console.log(`  ${index + 1}. ${lang.name} (${lang.code})`);
-  });
-
-  const CONFIG_PATH = getConfigPath();
-
-  let currentLang = 'en';
-  try {
-    const config = await readJSON(CONFIG_PATH) as { language?: string };
-    if (config?.language) {
-      currentLang = config.language;
+  if (!code) {
+    const current = config.get('language') || 'en';
+    console.log(`Current language: ${getLanguageName(current)} (${current})`);
+    console.log('Supported languages:');
+    for (const lang of SUPPORTED_LANGUAGES) {
+      console.log(`- ${lang.code}: ${lang.name}`);
     }
-  } catch {
-    // No config file yet
+    console.log('Set language with: agent-speech set-language <code>');
+    return 0;
   }
 
-  console.log(`\nCurrent language: ${SUPPORTED_LANGUAGES.find(l => l.code === currentLang)?.name || 'English'} (${currentLang})`);
-  console.log('Enter number [1-8]:');
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  try {
-    const answer = await new Promise<string>((resolve) => {
-      rl.question('> ', (input) => {
-        resolve(input.trim());
-      });
-    });
-
-    const selection = parseInt(answer);
-
-    if (isNaN(selection) || selection < 1 || selection > 8) {
-      console.error('Error: Please enter a number between 1 and 8');
-      rl.close();
-      return 1;
-    }
-
-    const selectedLang = SUPPORTED_LANGUAGES[selection - 1];
-
-    try {
-      const config = await readJSON(CONFIG_PATH) as { language?: string } || {};
-
-      config.language = selectedLang.code;
-
-      await writeJSON(CONFIG_PATH, config);
-
-      console.log(`\nLanguage updated to: ${selectedLang.name} (${selectedLang.code})`);
-      console.log(`\nNote: Some features may require a plugin reload to take effect.`);
-
-      rl.close();
-      return 0;
-    } catch (error: unknown) {
-      const errorCode = (error as { code?: string }).code;
-      if (errorCode === 'ENOENT') {
-        console.error('Error: Configuration not found. Run "agent-speech init" first.');
-      } else if (errorCode === 'EACCES') {
-        console.error('Error: Permission denied. Cannot modify configuration.');
-      } else {
-        console.error('Error:', error instanceof Error ? error.message : String(error));
-      }
-      rl.close();
-      return 1;
-    }
-  } catch (error) {
-    console.error('Error:', error instanceof Error ? error.message : String(error));
-    rl.close();
+  const normalized = normalizeLanguageCode(code);
+  if (!isSupportedLanguage(normalized)) {
+    console.error(`Unsupported language code: ${code}`);
+    console.error('Supported codes:', SUPPORTED_LANGUAGES.map((lang) => lang.code).join(', '));
     return 1;
   }
+
+  config.set('language', normalized);
+  await config.save();
+  console.log(`Language updated to: ${getLanguageName(normalized)} (${normalized})`);
+  return 0;
 }

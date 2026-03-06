@@ -3774,7 +3774,7 @@ var require_schemes = __commonJS({
         serialize: httpSerialize
       }
     );
-    var https = (
+    var https2 = (
       /** @type {SchemeHandler} */
       {
         scheme: "https",
@@ -3823,7 +3823,7 @@ var require_schemes = __commonJS({
       /** @type {Record<SchemeName, SchemeHandler>} */
       {
         http,
-        https,
+        https: https2,
         ws,
         wss,
         urn,
@@ -18816,6 +18816,55 @@ var SayCommand = class {
   }
 };
 
+// src/infrastructure/translate.ts
+import https from "https";
+var TRANSLATE_CHUNK_SIZE = 1500;
+function safeTranslateChunks(data) {
+  const parts = Array.isArray(data[0]) ? data[0] : [];
+  return parts.map((item) => Array.isArray(item) && typeof item[0] === "string" ? item[0] : "").join("").trim();
+}
+__name(safeTranslateChunks, "safeTranslateChunks");
+async function translateText(text, targetLanguage) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return text;
+  }
+  const tl = targetLanguage.trim();
+  if (!tl || tl.toLowerCase() === "en") {
+    return text;
+  }
+  const chunks = [];
+  for (let i = 0; i < trimmed.length; i += TRANSLATE_CHUNK_SIZE) {
+    chunks.push(trimmed.slice(i, i + TRANSLATE_CHUNK_SIZE));
+  }
+  const translatedParts = [];
+  for (const chunk of chunks) {
+    const q = encodeURIComponent(chunk);
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(tl)}&dt=t&q=${q}`;
+    const body = await new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (part) => {
+          data += part;
+        });
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Translation API failed with status ${res.statusCode}`));
+            return;
+          }
+          resolve(data);
+        });
+      }).on("error", reject);
+    });
+    const parsed = JSON.parse(body);
+    translatedParts.push(safeTranslateChunks(parsed) || chunk);
+  }
+  const translated = translatedParts.join("").trim();
+  return translated || text;
+}
+__name(translateText, "translateText");
+
 // src/core/filter.ts
 var SENSITIVE_PATTERNS = [
   /(?:api[_-]?key|apikey|api-key)['":\s]*([a-zA-Z0-9_\-]{20,})/gi,
@@ -19074,8 +19123,17 @@ var TextToSpeech = class {
         this.logger.debug("Skipping speech", { reason });
         return { spoken: false, reason: reason || "filtered" };
       }
-      this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: filteredText.length });
-      await this.say.speak(filteredText, config2, {
+      let speechText = filteredText;
+      if (config2.language && config2.language.toLowerCase() !== "en") {
+        speechText = await translateText(filteredText, config2.language);
+        this.logger.debug("Translated text", {
+          targetLanguage: config2.language,
+          originalLength: filteredText.length,
+          translatedLength: speechText.length
+        });
+      }
+      this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: speechText.length });
+      await this.say.speak(speechText, config2, {
         onClose: /* @__PURE__ */ __name((code) => {
           if (code !== 0) {
             this.logger.error("Speech process exited with non-zero code", { code });
@@ -19181,7 +19239,8 @@ var DEFAULT_CONFIG2 = {
     sensitive: false,
     skipCodeBlocks: false,
     skipCommands: false
-  }
+  },
+  language: "en"
 };
 var ConfigManager = class {
   static {
@@ -19226,7 +19285,7 @@ var ConfigManager = class {
       minLength: global.minLength ?? DEFAULT_CONFIG2.minLength,
       maxLength: global.maxLength ?? DEFAULT_CONFIG2.maxLength,
       filters: global.filters ?? DEFAULT_CONFIG2.filters,
-      language: oldConfig.language
+      language: oldConfig.language || "en"
     };
   }
   async save() {
@@ -19260,6 +19319,9 @@ var ConfigManager = class {
   }
   validate() {
     if (typeof this.config.enabled !== "boolean" || typeof this.config.voice !== "string" || typeof this.config.rate !== "number" || typeof this.config.volume !== "number" || typeof this.config.minLength !== "number" || typeof this.config.maxLength !== "number") {
+      return false;
+    }
+    if (this.config.language !== void 0 && typeof this.config.language !== "string") {
       return false;
     }
     if (this.config.rate < 50 || this.config.rate > 400) {
@@ -19298,6 +19360,7 @@ function safeValidateSpeakTextInput(data) {
 __name(safeValidateSpeakTextInput, "safeValidateSpeakTextInput");
 var TTSConfigSchema = external_exports.object({
   voice: external_exports.string().default("Samantha"),
+  language: external_exports.string().default("en"),
   rate: external_exports.number().min(50).max(400).default(200),
   volume: external_exports.number().min(0).max(100).default(50),
   enabled: external_exports.boolean().default(true),
@@ -19306,6 +19369,7 @@ var TTSConfigSchema = external_exports.object({
 var ToolConfigSchema = external_exports.object({
   enabled: external_exports.boolean().default(true),
   voice: external_exports.string().optional(),
+  language: external_exports.string().optional(),
   rate: external_exports.number().min(50).max(400).optional(),
   volume: external_exports.number().min(0).max(100).optional(),
   minLength: external_exports.number().min(0).optional()
@@ -19319,6 +19383,7 @@ var AgentSpeechCommandInputSchema = external_exports.object({
     "set_voice",
     "set_rate",
     "set_volume",
+    "set_language",
     "list_voices"
   ]),
   value: external_exports.union([external_exports.string(), external_exports.number()]).optional()
@@ -19334,6 +19399,34 @@ function safeValidateAgentSpeechCommandInput(data) {
   };
 }
 __name(safeValidateAgentSpeechCommandInput, "safeValidateAgentSpeechCommandInput");
+
+// src/utils/language.ts
+var SUPPORTED_LANGUAGES = [
+  { code: "en", name: "English" },
+  { code: "ko", name: "Korean" },
+  { code: "ja", name: "Japanese" },
+  { code: "zh-CN", name: "Chinese (Simplified)" },
+  { code: "es", name: "Spanish" },
+  { code: "fr", name: "French" },
+  { code: "de", name: "German" },
+  { code: "it", name: "Italian" }
+];
+function normalizeLanguageCode(input) {
+  const code = input.trim();
+  if (code.toLowerCase() === "zh") {
+    return "zh-CN";
+  }
+  return code;
+}
+__name(normalizeLanguageCode, "normalizeLanguageCode");
+function isSupportedLanguage(code) {
+  return SUPPORTED_LANGUAGES.some((lang) => lang.code.toLowerCase() === code.toLowerCase());
+}
+__name(isSupportedLanguage, "isSupportedLanguage");
+function getLanguageName(code) {
+  return SUPPORTED_LANGUAGES.find((lang) => lang.code.toLowerCase() === code.toLowerCase())?.name || code;
+}
+__name(getLanguageName, "getLanguageName");
 
 // src/infrastructure/mcp-server.ts
 var SPEAK_TOOL_NAME = "speak_text";
@@ -19351,7 +19444,7 @@ var MCPServer = class {
     this.server = new Server(
       {
         name: "agent-speech",
-        version: "0.1.7"
+        version: "0.1.8"
       },
       {
         capabilities: {
@@ -19476,6 +19569,7 @@ var MCPServer = class {
             "set_voice",
             "set_rate",
             "set_volume",
+            "set_language",
             "list_voices"
           ],
           description: "Control action for agent-speech settings"
@@ -19510,6 +19604,7 @@ var MCPServer = class {
         volume: currentConfig.volume,
         minLength: 0,
         maxLength: currentConfig.maxLength,
+        language: currentConfig.language,
         filters: currentConfig.filters,
         ...input.voice && { voice: input.voice },
         ...input.rate && { rate: input.rate },
@@ -19567,6 +19662,7 @@ var MCPServer = class {
       `voice: ${settings.voice}`,
       `rate: ${settings.rate}`,
       `volume: ${settings.volume}`,
+      `language: ${settings.language || "en"} (${getLanguageName(settings.language || "en")})`,
       `minLength: ${settings.minLength}`,
       `maxLength: ${settings.maxLength || "unlimited"}`,
       `filterSensitive: ${settings.filters.sensitive}`,
@@ -19626,6 +19722,18 @@ var MCPServer = class {
           this.config.set("volume", value);
           await this.config.save();
           return { content: [{ type: "text", text: `Volume set to ${value}.` }] };
+        }
+        case "set_language": {
+          if (typeof value !== "string" || !value.trim()) {
+            throw new Error("set_language requires a language code value (e.g., ko, en, ja)");
+          }
+          const code = normalizeLanguageCode(value);
+          if (!isSupportedLanguage(code)) {
+            throw new Error(`Unsupported language code: ${value}`);
+          }
+          this.config.set("language", code);
+          await this.config.save();
+          return { content: [{ type: "text", text: `Language set to ${getLanguageName(code)} (${code}).` }] };
         }
         case "list_voices": {
           const voices = await this.tts.getAvailableVoices();

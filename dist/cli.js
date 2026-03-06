@@ -150,7 +150,8 @@ var DEFAULT_CONFIG2 = {
     sensitive: false,
     skipCodeBlocks: false,
     skipCommands: false
-  }
+  },
+  language: "en"
 };
 var ConfigManager = class {
   static {
@@ -195,7 +196,7 @@ var ConfigManager = class {
       minLength: global.minLength ?? DEFAULT_CONFIG2.minLength,
       maxLength: global.maxLength ?? DEFAULT_CONFIG2.maxLength,
       filters: global.filters ?? DEFAULT_CONFIG2.filters,
-      language: oldConfig.language
+      language: oldConfig.language || "en"
     };
   }
   async save() {
@@ -229,6 +230,9 @@ var ConfigManager = class {
   }
   validate() {
     if (typeof this.config.enabled !== "boolean" || typeof this.config.voice !== "string" || typeof this.config.rate !== "number" || typeof this.config.volume !== "number" || typeof this.config.minLength !== "number" || typeof this.config.maxLength !== "number") {
+      return false;
+    }
+    if (this.config.language !== void 0 && typeof this.config.language !== "string") {
       return false;
     }
     if (this.config.rate < 50 || this.config.rate > 400) {
@@ -344,6 +348,7 @@ async function cmdStatus() {
   const settings = config.getAll();
   format("  enabled:", settings.enabled);
   format("  voice:", settings.voice);
+  format("  language:", settings.language || "en");
   format("  rate:", settings.rate, "WPM");
   format("  volume:", settings.volume);
   format("  min length:", settings.minLength);
@@ -613,6 +618,55 @@ var SayCommand = class {
   }
 };
 
+// src/infrastructure/translate.ts
+import https from "https";
+var TRANSLATE_CHUNK_SIZE = 1500;
+function safeTranslateChunks(data) {
+  const parts = Array.isArray(data[0]) ? data[0] : [];
+  return parts.map((item) => Array.isArray(item) && typeof item[0] === "string" ? item[0] : "").join("").trim();
+}
+__name(safeTranslateChunks, "safeTranslateChunks");
+async function translateText(text, targetLanguage) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return text;
+  }
+  const tl = targetLanguage.trim();
+  if (!tl || tl.toLowerCase() === "en") {
+    return text;
+  }
+  const chunks = [];
+  for (let i = 0; i < trimmed.length; i += TRANSLATE_CHUNK_SIZE) {
+    chunks.push(trimmed.slice(i, i + TRANSLATE_CHUNK_SIZE));
+  }
+  const translatedParts = [];
+  for (const chunk of chunks) {
+    const q = encodeURIComponent(chunk);
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(tl)}&dt=t&q=${q}`;
+    const body = await new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (part) => {
+          data += part;
+        });
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Translation API failed with status ${res.statusCode}`));
+            return;
+          }
+          resolve(data);
+        });
+      }).on("error", reject);
+    });
+    const parsed = JSON.parse(body);
+    translatedParts.push(safeTranslateChunks(parsed) || chunk);
+  }
+  const translated = translatedParts.join("").trim();
+  return translated || text;
+}
+__name(translateText, "translateText");
+
 // src/core/filter.ts
 var SENSITIVE_PATTERNS = [
   /(?:api[_-]?key|apikey|api-key)['":\s]*([a-zA-Z0-9_\-]{20,})/gi,
@@ -788,8 +842,17 @@ var TextToSpeech = class {
         this.logger.debug("Skipping speech", { reason });
         return { spoken: false, reason: reason || "filtered" };
       }
-      this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: filteredText.length });
-      await this.say.speak(filteredText, config, {
+      let speechText = filteredText;
+      if (config.language && config.language.toLowerCase() !== "en") {
+        speechText = await translateText(filteredText, config.language);
+        this.logger.debug("Translated text", {
+          targetLanguage: config.language,
+          originalLength: filteredText.length,
+          translatedLength: speechText.length
+        });
+      }
+      this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: speechText.length });
+      await this.say.speak(speechText, config, {
         onClose: /* @__PURE__ */ __name((code) => {
           if (code !== 0) {
             this.logger.error("Speech process exited with non-zero code", { code });
@@ -865,84 +928,69 @@ async function cmdReset() {
 }
 __name(cmdReset, "cmdReset");
 
-// src/commands/language.ts
-import readline from "readline";
+// src/utils/language.ts
 var SUPPORTED_LANGUAGES = [
   { code: "en", name: "English" },
   { code: "ko", name: "Korean" },
   { code: "ja", name: "Japanese" },
-  { code: "zh", name: "Chinese (Simplified)" },
+  { code: "zh-CN", name: "Chinese (Simplified)" },
   { code: "es", name: "Spanish" },
   { code: "fr", name: "French" },
   { code: "de", name: "German" },
   { code: "it", name: "Italian" }
 ];
-async function cmdLanguage() {
-  console.log("\nAvailable languages:");
-  SUPPORTED_LANGUAGES.forEach((lang, index) => {
-    console.log(`  ${index + 1}. ${lang.name} (${lang.code})`);
-  });
-  const CONFIG_PATH = getConfigPath();
-  let currentLang = "en";
-  try {
-    const config = await readJSON(CONFIG_PATH);
-    if (config?.language) {
-      currentLang = config.language;
-    }
-  } catch {
+function normalizeLanguageCode(input) {
+  const code = input.trim();
+  if (code.toLowerCase() === "zh") {
+    return "zh-CN";
   }
-  console.log(`
-Current language: ${SUPPORTED_LANGUAGES.find((l) => l.code === currentLang)?.name || "English"} (${currentLang})`);
-  console.log("Enter number [1-8]:");
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  try {
-    const answer = await new Promise((resolve) => {
-      rl.question("> ", (input) => {
-        resolve(input.trim());
-      });
-    });
-    const selection = parseInt(answer);
-    if (isNaN(selection) || selection < 1 || selection > 8) {
-      console.error("Error: Please enter a number between 1 and 8");
-      rl.close();
-      return 1;
+  return code;
+}
+__name(normalizeLanguageCode, "normalizeLanguageCode");
+function isSupportedLanguage(code) {
+  return SUPPORTED_LANGUAGES.some((lang) => lang.code.toLowerCase() === code.toLowerCase());
+}
+__name(isSupportedLanguage, "isSupportedLanguage");
+function getLanguageName(code) {
+  return SUPPORTED_LANGUAGES.find((lang) => lang.code.toLowerCase() === code.toLowerCase())?.name || code;
+}
+__name(getLanguageName, "getLanguageName");
+
+// src/commands/language.ts
+async function cmdLanguage(code) {
+  const config = new ConfigManager();
+  await config.init();
+  if (!code) {
+    const current = config.get("language") || "en";
+    console.log(`Current language: ${getLanguageName(current)} (${current})`);
+    console.log("Supported languages:");
+    for (const lang of SUPPORTED_LANGUAGES) {
+      console.log(`- ${lang.code}: ${lang.name}`);
     }
-    const selectedLang = SUPPORTED_LANGUAGES[selection - 1];
-    try {
-      const config = await readJSON(CONFIG_PATH) || {};
-      config.language = selectedLang.code;
-      await writeJSON(CONFIG_PATH, config);
-      console.log(`
-Language updated to: ${selectedLang.name} (${selectedLang.code})`);
-      console.log(`
-Note: Some features may require a plugin reload to take effect.`);
-      rl.close();
-      return 0;
-    } catch (error) {
-      const errorCode = error.code;
-      if (errorCode === "ENOENT") {
-        console.error('Error: Configuration not found. Run "agent-speech init" first.');
-      } else if (errorCode === "EACCES") {
-        console.error("Error: Permission denied. Cannot modify configuration.");
-      } else {
-        console.error("Error:", error instanceof Error ? error.message : String(error));
-      }
-      rl.close();
-      return 1;
-    }
-  } catch (error) {
-    console.error("Error:", error instanceof Error ? error.message : String(error));
-    rl.close();
+    console.log("Set language with: agent-speech set-language <code>");
+    return 0;
+  }
+  const normalized = normalizeLanguageCode(code);
+  if (!isSupportedLanguage(normalized)) {
+    console.error(`Unsupported language code: ${code}`);
+    console.error("Supported codes:", SUPPORTED_LANGUAGES.map((lang) => lang.code).join(", "));
     return 1;
   }
+  config.set("language", normalized);
+  await config.save();
+  console.log(`Language updated to: ${getLanguageName(normalized)} (${normalized})`);
+  return 0;
 }
 __name(cmdLanguage, "cmdLanguage");
 
+// src/commands/set-language.ts
+async function cmdSetLanguage(code) {
+  return cmdLanguage(code);
+}
+__name(cmdSetLanguage, "cmdSetLanguage");
+
 // src/commands/mute.ts
-import readline2 from "readline";
+import readline from "readline";
 import { existsSync as existsSync3 } from "fs";
 import { promises as promises2 } from "fs";
 var DURATION_OPTIONS = [
@@ -998,7 +1046,7 @@ async function cmdMute(arg) {
     console.log(`  ${index + 1}. ${option.label}`);
   });
   console.log("Enter number [1-7]:");
-  const rl = readline2.createInterface({
+  const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   });
@@ -1060,7 +1108,8 @@ function cmdHelp() {
   format("  set-volume <0-100>      Set volume (0-100)");
   format("  list-voices             List available voices");
   format("  reset                   Reset to defaults");
-  format("  language                Select language interactively");
+  format("  language [code]         Show/set target language");
+  format("  set-language <code>     Set target language (e.g., ko, en, ja)");
   format("  mute [off]              Set mute duration or cancel mute");
   format("  help                    Show this help");
   format("");
@@ -1100,7 +1149,9 @@ async function main() {
     case "reset":
       return await cmdReset();
     case "language":
-      return await cmdLanguage();
+      return await cmdLanguage(commandArgs[0]);
+    case "set-language":
+      return await cmdSetLanguage(commandArgs[0]);
     case "mute":
       return await cmdMute(commandArgs[0]);
     case "help":

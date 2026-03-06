@@ -48,6 +48,7 @@ export function safeValidateSpeakTextInput(
  */
 export const TTSConfigSchema = z.object({
   voice: z.string().default('Samantha'),
+  language: z.string().default('en'),
   rate: z.number().min(50).max(400).default(200),
   volume: z.number().min(0).max(100).default(50),
   enabled: z.boolean().default(true),
@@ -69,6 +70,7 @@ export function validateTTSConfig(data: unknown): TTSConfig {
 export const ToolConfigSchema = z.object({
   enabled: z.boolean().default(true),
   voice: z.string().optional(),
+  language: z.string().optional(),
   rate: z.number().min(50).max(400).optional(),
   volume: z.number().min(0).max(100).optional(),
   minLength: z.number().min(0).optional(),
@@ -92,6 +94,7 @@ export const AgentSpeechCommandInputSchema = z.object({
     'set_voice',
     'set_rate',
     'set_volume',
+    'set_language',
     'list_voices',
   ]),
   value: z.union([z.string(), z.number()]).optional(),

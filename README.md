@@ -37,6 +37,7 @@ After install/update, you can run Agent Speech with a slash command:
 /agent-speech status
 /agent-speech speak 안녕하세요, 음성 테스트입니다.
 /agent-speech enable
+/agent-speech set-language ko
 /agent-speech set-voice Samantha
 ```
 
@@ -57,6 +58,7 @@ gemini extensions uninstall agent-speech
 - **macOS Native TTS** — Uses built-in `say` command, zero external dependencies
 - **Non-Blocking** — Async speech, never blocks CLI interaction
 - **Configurable** — Voice, rate (50–400 WPM), volume (0–100)
+- **Auto Translation** — Translates responses to configured language before speech (Google free translate endpoint)
 - **Privacy-Conscious** — Optional sensitive content filtering
 - **Self-Contained** — All dependencies bundled, installs from git in one command
 - **Auto Read Responses** — AfterAgent hook reads completed Gemini responses aloud
@@ -80,6 +82,7 @@ Config file: `~/.agent-speech/config.json`
 ```json
 {
   "enabled": true,
+  "language": "en",
   "voice": "Samantha",
   "rate": 200,
   "volume": 50,
@@ -108,6 +111,7 @@ agent-speech toggle            # Quick toggle on/off
 agent-speech status            # Show current settings
 agent-speech reset             # Reset to defaults
 agent-speech set-voice <name>  # Set voice (e.g., Samantha, Alex, Victoria)
+agent-speech set-language <code> # Set target translation language (ko, en, ja, zh-CN, es, fr, de, it)
 agent-speech set-rate <wpm>    # Set speech rate (50-400)
 agent-speech set-volume <0-100> # Set volume
 agent-speech list-voices       # List available macOS voices

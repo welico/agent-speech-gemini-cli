@@ -16,6 +16,7 @@ export async function cmdStatus(): Promise<number> {
   const settings = config.getAll();
   format('  enabled:', settings.enabled);
   format('  voice:', settings.voice);
+  format('  language:', settings.language || 'en');
   format('  rate:', settings.rate, 'WPM');
   format('  volume:', settings.volume);
   format('  min length:', settings.minLength);

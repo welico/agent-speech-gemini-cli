@@ -11,8 +11,9 @@
  *   agent-speech set-rate <wpm>    Set speech rate
  *   agent-speech set-volume <0-100> Set volume
  *   agent-speech list-voices       List available voices
+ *   agent-speech set-language <code> Set target language for translation
  *   agent-speech reset             Reset to defaults
- *   agent-speech language          Show/set language
+ *   agent-speech language [code]   Show/set language
  *   agent-speech mute [on|off]     Mute/unmute
  *   agent-speech help              Show help
  */
@@ -29,6 +30,7 @@ import {
   cmdListVoices,
   cmdReset,
   cmdLanguage,
+  cmdSetLanguage,
   cmdMute,
   cmdHelp,
 } from './commands/index.js';
@@ -49,6 +51,7 @@ const COMMANDS = [
   'list-voices',
   'reset',
   'language',
+  'set-language',
   'mute',
   'help',
   '--help',
@@ -91,7 +94,9 @@ async function main(): Promise<number> {
     case 'reset':
       return await cmdReset();
     case 'language':
-      return await cmdLanguage();
+      return await cmdLanguage(commandArgs[0]);
+    case 'set-language':
+      return await cmdSetLanguage(commandArgs[0]);
     case 'mute':
       return await cmdMute(commandArgs[0]);
     case 'help':

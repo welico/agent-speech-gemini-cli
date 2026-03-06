@@ -16,6 +16,7 @@ Supported forms:
 - `set-voice <name>` -> action: set_voice, value: <name>
 - `set-rate <50-400>` -> action: set_rate, value: <number>
 - `set-volume <0-100>` -> action: set_volume, value: <number>
+- `set-language <code>` -> action: set_language, value: <code> (en, ko, ja, zh-CN, es, fr, de, it)
 - `list-voices` -> action: list_voices
 
 If args are invalid, show concise usage examples.

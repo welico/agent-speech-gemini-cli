@@ -9,6 +9,7 @@ import { ConfigManager } from '../core/config.js';
 import { createLogger } from '../utils/logger.js';
 import { withErrorHandling } from '../utils/error-handler.js';
 import { safeValidateSpeakTextInput, safeValidateAgentSpeechCommandInput } from '../utils/schemas.js';
+import { getLanguageName, isSupportedLanguage, normalizeLanguageCode } from '../utils/language.js';
 
 const SPEAK_TOOL_NAME = 'speak_text';
 const STATUS_TOOL_NAME = 'agent_speech_status';
@@ -24,7 +25,7 @@ export class MCPServer {
     this.server = new Server(
       {
         name: 'agent-speech',
-        version: '0.1.7',
+        version: '0.1.8',
       },
       {
         capabilities: {
@@ -162,6 +163,7 @@ export class MCPServer {
             'set_voice',
             'set_rate',
             'set_volume',
+            'set_language',
             'list_voices',
           ],
           description: 'Control action for agent-speech settings',
@@ -203,6 +205,7 @@ export class MCPServer {
         volume: currentConfig.volume,
         minLength: 0,
         maxLength: currentConfig.maxLength,
+        language: currentConfig.language,
         filters: currentConfig.filters,
         ...(input.voice && { voice: input.voice }),
         ...(input.rate && { rate: input.rate }),
@@ -271,6 +274,7 @@ export class MCPServer {
       `voice: ${settings.voice}`,
       `rate: ${settings.rate}`,
       `volume: ${settings.volume}`,
+      `language: ${settings.language || 'en'} (${getLanguageName(settings.language || 'en')})`,
       `minLength: ${settings.minLength}`,
       `maxLength: ${settings.maxLength || 'unlimited'}`,
       `filterSensitive: ${settings.filters.sensitive}`,
@@ -335,6 +339,18 @@ export class MCPServer {
           this.config.set('volume', value);
           await this.config.save();
           return { content: [{ type: 'text', text: `Volume set to ${value}.` }] };
+        }
+        case 'set_language': {
+          if (typeof value !== 'string' || !value.trim()) {
+            throw new Error('set_language requires a language code value (e.g., ko, en, ja)');
+          }
+          const code = normalizeLanguageCode(value);
+          if (!isSupportedLanguage(code)) {
+            throw new Error(`Unsupported language code: ${value}`);
+          }
+          this.config.set('language', code);
+          await this.config.save();
+          return { content: [{ type: 'text', text: `Language set to ${getLanguageName(code)} (${code}).` }] };
         }
         case 'list_voices': {
           const voices = await this.tts.getAvailableVoices();

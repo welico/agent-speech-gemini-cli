@@ -149,7 +149,8 @@ var DEFAULT_CONFIG2 = {
     sensitive: false,
     skipCodeBlocks: false,
     skipCommands: false
-  }
+  },
+  language: "en"
 };
 var ConfigManager = class {
   static {
@@ -194,7 +195,7 @@ var ConfigManager = class {
       minLength: global.minLength ?? DEFAULT_CONFIG2.minLength,
       maxLength: global.maxLength ?? DEFAULT_CONFIG2.maxLength,
       filters: global.filters ?? DEFAULT_CONFIG2.filters,
-      language: oldConfig.language
+      language: oldConfig.language || "en"
     };
   }
   async save() {
@@ -228,6 +229,9 @@ var ConfigManager = class {
   }
   validate() {
     if (typeof this.config.enabled !== "boolean" || typeof this.config.voice !== "string" || typeof this.config.rate !== "number" || typeof this.config.volume !== "number" || typeof this.config.minLength !== "number" || typeof this.config.maxLength !== "number") {
+      return false;
+    }
+    if (this.config.language !== void 0 && typeof this.config.language !== "string") {
       return false;
     }
     if (this.config.rate < 50 || this.config.rate > 400) {
@@ -413,6 +417,55 @@ var SayCommand = class {
   }
 };
 
+// src/infrastructure/translate.ts
+import https from "https";
+var TRANSLATE_CHUNK_SIZE = 1500;
+function safeTranslateChunks(data) {
+  const parts = Array.isArray(data[0]) ? data[0] : [];
+  return parts.map((item) => Array.isArray(item) && typeof item[0] === "string" ? item[0] : "").join("").trim();
+}
+__name(safeTranslateChunks, "safeTranslateChunks");
+async function translateText(text, targetLanguage) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return text;
+  }
+  const tl = targetLanguage.trim();
+  if (!tl || tl.toLowerCase() === "en") {
+    return text;
+  }
+  const chunks = [];
+  for (let i = 0; i < trimmed.length; i += TRANSLATE_CHUNK_SIZE) {
+    chunks.push(trimmed.slice(i, i + TRANSLATE_CHUNK_SIZE));
+  }
+  const translatedParts = [];
+  for (const chunk of chunks) {
+    const q = encodeURIComponent(chunk);
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(tl)}&dt=t&q=${q}`;
+    const body = await new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (part) => {
+          data += part;
+        });
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`Translation API failed with status ${res.statusCode}`));
+            return;
+          }
+          resolve(data);
+        });
+      }).on("error", reject);
+    });
+    const parsed = JSON.parse(body);
+    translatedParts.push(safeTranslateChunks(parsed) || chunk);
+  }
+  const translated = translatedParts.join("").trim();
+  return translated || text;
+}
+__name(translateText, "translateText");
+
 // src/core/filter.ts
 var SENSITIVE_PATTERNS = [
   /(?:api[_-]?key|apikey|api-key)['":\s]*([a-zA-Z0-9_\-]{20,})/gi,
@@ -588,8 +641,17 @@ var TextToSpeech = class {
         this.logger.debug("Skipping speech", { reason });
         return { spoken: false, reason: reason || "filtered" };
       }
-      this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: filteredText.length });
-      await this.say.speak(filteredText, config, {
+      let speechText = filteredText;
+      if (config.language && config.language.toLowerCase() !== "en") {
+        speechText = await translateText(filteredText, config.language);
+        this.logger.debug("Translated text", {
+          targetLanguage: config.language,
+          originalLength: filteredText.length,
+          translatedLength: speechText.length
+        });
+      }
+      this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: speechText.length });
+      await this.say.speak(speechText, config, {
         onClose: /* @__PURE__ */ __name((code) => {
           if (code !== 0) {
             this.logger.error("Speech process exited with non-zero code", { code });

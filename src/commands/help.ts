@@ -19,7 +19,8 @@ export function cmdHelp(): number {
   format('  set-volume <0-100>      Set volume (0-100)');
   format('  list-voices             List available voices');
   format('  reset                   Reset to defaults');
-  format('  language                Select language interactively');
+  format('  language [code]         Show/set target language');
+  format('  set-language <code>     Set target language (e.g., ko, en, ja)');
   format('  mute [off]              Set mute duration or cancel mute');
   format('  help                    Show this help');
   format('');

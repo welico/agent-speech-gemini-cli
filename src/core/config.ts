@@ -18,6 +18,7 @@ const DEFAULT_CONFIG: AppConfig = {
     skipCodeBlocks: false,
     skipCommands: false,
   },
+  language: 'en',
 };
 
 export class ConfigManager {
@@ -69,7 +70,7 @@ export class ConfigManager {
       minLength: (global.minLength ?? DEFAULT_CONFIG.minLength) as number,
       maxLength: (global.maxLength ?? DEFAULT_CONFIG.maxLength) as number,
       filters: (global.filters ?? DEFAULT_CONFIG.filters) as AppConfig['filters'],
-      language: oldConfig.language as string | undefined,
+      language: (oldConfig.language as string | undefined) || 'en',
     };
   }
 
@@ -118,6 +119,10 @@ export class ConfigManager {
       typeof this.config.minLength !== 'number' ||
       typeof this.config.maxLength !== 'number'
     ) {
+      return false;
+    }
+
+    if (this.config.language !== undefined && typeof this.config.language !== 'string') {
       return false;
     }
 

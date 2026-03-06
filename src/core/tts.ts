@@ -1,5 +1,6 @@
 import { TTSConfig, VoiceInfo } from '../types/index.js';
 import { SayCommand } from '../infrastructure/say.js';
+import { translateText } from '../infrastructure/translate.js';
 import { ContentFilter } from './filter.js';
 import { createLogger } from '../utils/logger.js';
 import { withErrorHandling } from '../utils/error-handler.js';
@@ -31,9 +32,19 @@ export class TextToSpeech {
         return { spoken: false, reason: reason || 'filtered' };
       }
 
-      this.logger.debug('Filtered text', { originalLength: text.length, filteredLength: filteredText.length });
+      let speechText = filteredText;
+      if (config.language && config.language.toLowerCase() !== 'en') {
+        speechText = await translateText(filteredText, config.language);
+        this.logger.debug('Translated text', {
+          targetLanguage: config.language,
+          originalLength: filteredText.length,
+          translatedLength: speechText.length,
+        });
+      }
 
-      await this.say.speak(filteredText, config, {
+      this.logger.debug('Filtered text', { originalLength: text.length, filteredLength: speechText.length });
+
+      await this.say.speak(speechText, config, {
         onClose: (code) => {
           if (code !== 0) {
             this.logger.error('Speech process exited with non-zero code', { code });
