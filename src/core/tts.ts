@@ -15,20 +15,20 @@ export class TextToSpeech {
     this.filter = new ContentFilter();
   }
 
-  async speak(text: string, config: TTSConfig): Promise<void> {
+  async speak(text: string, config: TTSConfig): Promise<{ spoken: boolean; reason?: string }> {
     return withErrorHandling('speak', async () => {
       this.logger.debug('Starting speech', { textLength: text.length, config });
 
       if (!config.enabled || !this.enabled) {
         this.logger.debug('Speech disabled', { configEnabled: config.enabled, globalEnabled: this.enabled });
-        return;
+        return { spoken: false, reason: 'disabled' };
       }
 
       const { shouldSpeak, text: filteredText, reason } = this.filter.filter(text, config);
 
       if (!shouldSpeak) {
         this.logger.debug('Skipping speech', { reason });
-        return;
+        return { spoken: false, reason: reason || 'filtered' };
       }
 
       this.logger.debug('Filtered text', { originalLength: text.length, filteredLength: filteredText.length });
@@ -45,6 +45,7 @@ export class TextToSpeech {
       });
 
       this.logger.debug('Speech started');
+      return { spoken: true };
     }, this.logger);
   }
 

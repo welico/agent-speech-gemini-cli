@@ -184,12 +184,12 @@ export class SayCommand {
         continue;
       }
 
-      const match = trimmed.match(/^(\S+)\s+(.+?)\s+([a-z]{2}-[A-Z]{2})/);
+      const match = trimmed.match(/^(\S+)\s+(.+?)\s+([a-z]{2}[-_][A-Z]{2})/);
       if (match) {
         voices.push({
           name: match[1],
           displayName: match[2].trim(),
-          language: match[3],
+          language: match[3].replace('_', '-'),
         });
       }
     }

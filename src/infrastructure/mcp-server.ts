@@ -24,7 +24,7 @@ export class MCPServer {
     this.server = new Server(
       {
         name: 'agent-speech',
-        version: '0.1.5',
+        version: '0.1.6',
       },
       {
         capabilities: {
@@ -201,7 +201,7 @@ export class MCPServer {
         voice: currentConfig.voice,
         rate: currentConfig.rate,
         volume: currentConfig.volume,
-        minLength: currentConfig.minLength,
+        minLength: 0,
         maxLength: currentConfig.maxLength,
         filters: currentConfig.filters,
         ...(input.voice && { voice: input.voice }),
@@ -211,17 +211,41 @@ export class MCPServer {
 
       this.logger.debug('Final config', { voice: config.voice, rate: config.rate, volume: config.volume });
 
-      this.tts.speak(input.text, config);
+      await this.ensureVoiceExists(config.voice);
+
+      const result = await this.tts.speak(input.text, config);
+
+      if (!result.spoken) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Speech skipped: ${result.reason || 'unknown reason'}`,
+            },
+          ],
+        };
+      }
 
       return {
         content: [
           {
             type: 'text',
-            text: `Speaking text with voice "${config.voice}"`,
+            text: `Spoken with voice "${config.voice}"`,
           },
         ],
       };
     }, this.logger);
+  }
+
+  private async ensureVoiceExists(voice: string): Promise<void> {
+    const voices = await this.tts.getAvailableVoices();
+    const exists = voices.some((v) => v.name === voice);
+    if (exists) {
+      return;
+    }
+
+    const sample = voices.slice(0, 8).map((v) => v.name).join(', ');
+    throw new Error(`Voice "${voice}" is not available. Try one of: ${sample}`);
   }
 
   private async handleStatus(): Promise<{

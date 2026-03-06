@@ -586,12 +586,12 @@ var SayCommand = class {
       if (!trimmed || trimmed.startsWith("#")) {
         continue;
       }
-      const match = trimmed.match(/^(\S+)\s+(.+?)\s+([a-z]{2}-[A-Z]{2})/);
+      const match = trimmed.match(/^(\S+)\s+(.+?)\s+([a-z]{2}[-_][A-Z]{2})/);
       if (match) {
         voices.push({
           name: match[1],
           displayName: match[2].trim(),
-          language: match[3]
+          language: match[3].replace("_", "-")
         });
       }
     }
@@ -781,12 +781,12 @@ var TextToSpeech = class {
       this.logger.debug("Starting speech", { textLength: text.length, config });
       if (!config.enabled || !this.enabled) {
         this.logger.debug("Speech disabled", { configEnabled: config.enabled, globalEnabled: this.enabled });
-        return;
+        return { spoken: false, reason: "disabled" };
       }
       const { shouldSpeak, text: filteredText, reason } = this.filter.filter(text, config);
       if (!shouldSpeak) {
         this.logger.debug("Skipping speech", { reason });
-        return;
+        return { spoken: false, reason: reason || "filtered" };
       }
       this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: filteredText.length });
       await this.say.speak(filteredText, config, {
@@ -800,6 +800,7 @@ var TextToSpeech = class {
         }, "onError")
       });
       this.logger.debug("Speech started");
+      return { spoken: true };
     }, this.logger);
   }
   stop() {

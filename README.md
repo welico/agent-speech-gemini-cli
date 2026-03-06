@@ -35,6 +35,7 @@ After install/update, you can run Agent Speech with a slash command:
 
 ```text
 /agent-speech status
+/agent-speech speak 안녕하세요, 음성 테스트입니다.
 /agent-speech enable
 /agent-speech set-voice Samantha
 ```
@@ -213,6 +214,30 @@ agent-speech-gemini-cli/
 1. Verify the extension is installed: `gemini extensions list`
 2. Reinstall: `gemini extensions uninstall agent-speech && gemini extensions install https://github.com/welico/agent-speech-gemini-cli.git`
 3. Restart Gemini CLI after installation
+
+### MCP approval prompt appears
+
+Gemini CLI does not allow extensions to auto-set `trust: true` in extension-managed MCP server config.
+
+For user-level always-allow behavior, configure Gemini policy/settings locally:
+
+```json
+{
+  "security": {
+    "enablePermanentToolApproval": true
+  }
+}
+```
+
+Then add a policy file in `~/.gemini/policies/agent-speech.toml`:
+
+```toml
+[[rule]]
+mcpName = "agent-speech"
+toolName = "*"
+decision = "allow"
+priority = 900
+```
 
 ### No speech output
 

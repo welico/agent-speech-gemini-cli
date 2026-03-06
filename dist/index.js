@@ -7332,12 +7332,12 @@ var SayCommand = class {
       if (!trimmed || trimmed.startsWith("#")) {
         continue;
       }
-      const match = trimmed.match(/^(\S+)\s+(.+?)\s+([a-z]{2}-[A-Z]{2})/);
+      const match = trimmed.match(/^(\S+)\s+(.+?)\s+([a-z]{2}[-_][A-Z]{2})/);
       if (match) {
         voices.push({
           name: match[1],
           displayName: match[2].trim(),
-          language: match[3]
+          language: match[3].replace("_", "-")
         });
       }
     }
@@ -7610,12 +7610,12 @@ var TextToSpeech = class {
       this.logger.debug("Starting speech", { textLength: text.length, config: config2 });
       if (!config2.enabled || !this.enabled) {
         this.logger.debug("Speech disabled", { configEnabled: config2.enabled, globalEnabled: this.enabled });
-        return;
+        return { spoken: false, reason: "disabled" };
       }
       const { shouldSpeak, text: filteredText, reason } = this.filter.filter(text, config2);
       if (!shouldSpeak) {
         this.logger.debug("Skipping speech", { reason });
-        return;
+        return { spoken: false, reason: reason || "filtered" };
       }
       this.logger.debug("Filtered text", { originalLength: text.length, filteredLength: filteredText.length });
       await this.say.speak(filteredText, config2, {
@@ -7629,6 +7629,7 @@ var TextToSpeech = class {
         }, "onError")
       });
       this.logger.debug("Speech started");
+      return { spoken: true };
     }, this.logger);
   }
   stop() {
@@ -19354,7 +19355,7 @@ var MCPServer = class {
     this.server = new Server(
       {
         name: "agent-speech",
-        version: "0.1.5"
+        version: "0.1.6"
       },
       {
         capabilities: {
@@ -19511,7 +19512,7 @@ var MCPServer = class {
         voice: currentConfig.voice,
         rate: currentConfig.rate,
         volume: currentConfig.volume,
-        minLength: currentConfig.minLength,
+        minLength: 0,
         maxLength: currentConfig.maxLength,
         filters: currentConfig.filters,
         ...input.voice && { voice: input.voice },
@@ -19519,16 +19520,36 @@ var MCPServer = class {
         ...input.volume !== void 0 && { volume: input.volume }
       };
       this.logger.debug("Final config", { voice: config2.voice, rate: config2.rate, volume: config2.volume });
-      this.tts.speak(input.text, config2);
+      await this.ensureVoiceExists(config2.voice);
+      const result = await this.tts.speak(input.text, config2);
+      if (!result.spoken) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Speech skipped: ${result.reason || "unknown reason"}`
+            }
+          ]
+        };
+      }
       return {
         content: [
           {
             type: "text",
-            text: `Speaking text with voice "${config2.voice}"`
+            text: `Spoken with voice "${config2.voice}"`
           }
         ]
       };
     }, this.logger);
+  }
+  async ensureVoiceExists(voice) {
+    const voices = await this.tts.getAvailableVoices();
+    const exists = voices.some((v) => v.name === voice);
+    if (exists) {
+      return;
+    }
+    const sample = voices.slice(0, 8).map((v) => v.name).join(", ");
+    throw new Error(`Voice "${voice}" is not available. Try one of: ${sample}`);
   }
   async handleStatus() {
     return withErrorHandling("handleStatus", async () => {

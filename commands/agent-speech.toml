@@ -3,10 +3,12 @@ prompt = """
 Interpret `{{args}}` and call MCP tools as follows:
 
 - If args are exactly `status`, call `agent_speech_status` with empty arguments.
+- If args start with `speak `, call `speak_text` with `text` set to the remaining content after `speak `.
 - Otherwise call `agent_speech_command`.
 
 Supported forms:
 - `status` -> call `agent_speech_status`
+- `speak <text>` -> call `speak_text` with text=<text>
 - `enable` -> action: enable
 - `disable` -> action: disable
 - `toggle` -> action: toggle
