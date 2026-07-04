@@ -1,7 +1,7 @@
 import { getUserHome } from '../infrastructure/fs.js';
 import { format } from '../utils/format.js';
 
-const TOOLS = ['gemini-cli', 'claude-code', 'opencode', 'codex-cli'] as const;
+const TOOLS = ['antigravity', 'claude-code', 'opencode', 'codex-cli'] as const;
 
 export function cmdHelp(): number {
   format('Agent Speech Plugin CLI');
@@ -10,9 +10,9 @@ export function cmdHelp(): number {
   format('');
   format('Commands:');
   format('  init                    Initialize configuration');
-  format('  enable [tool]           Enable TTS for tool (default: gemini-cli)');
-  format('  disable [tool]          Disable TTS for tool (default: gemini-cli)');
-  format('  toggle [tool]           Toggle TTS on/off (default: gemini-cli)');
+  format('  enable [tool]           Enable TTS for tool (default: antigravity)');
+  format('  disable [tool]          Disable TTS for tool (default: antigravity)');
+  format('  toggle [tool]           Toggle TTS on/off (default: antigravity)');
   format('  status                  Show configuration status');
   format('  set-voice <name>        Set voice (e.g., Samantha, Alex)');
   format('  set-rate <wpm>          Set speech rate (50-400)');

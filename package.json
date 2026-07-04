@@ -1,7 +1,7 @@
 {
-  "name": "agent-speech-gemini-cli",
-  "version": "0.1.9",
-  "description": "Gemini CLI text-to-speech extension using macOS native say command",
+  "name": "agent-speech-antigravity",
+  "version": "0.2.0",
+  "description": "Antigravity text-to-speech extension using macOS native say command",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -28,8 +28,8 @@
     "mcp",
     "tts",
     "text-to-speech",
-    "gemini-cli",
-    "gemini-cli-extension",
+    "antigravity",
+    "antigravity-extension",
     "macos",
     "say",
     "accessibility"
@@ -52,7 +52,7 @@
     "dist",
     "hooks",
     "gemini-extension.json",
-    "GEMINI.md",
+    "ANTIGRAVITY.md",
     "esbuild.config.mjs",
     "package.json",
     "README.md",

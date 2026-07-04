@@ -11,8 +11,9 @@
  *   agent-speech set-rate <wpm>    Set speech rate
  *   agent-speech set-volume <0-100> Set volume
  *   agent-speech list-voices       List available voices
+ *   agent-speech set-language <code> Set target language for translation
  *   agent-speech reset             Reset to defaults
- *   agent-speech language          Show/set language
+ *   agent-speech language [code]   Show/set language
  *   agent-speech mute [on|off]     Mute/unmute
  *   agent-speech help              Show help
  */

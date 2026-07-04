@@ -1,6 +1,6 @@
-# Agent Speech Extension - Gemini CLI Instructions
+# Agent Speech Extension - Antigravity CLI Instructions
 
-This extension provides text-to-speech (TTS) functionality for Gemini CLI using the macOS `say` command.
+This extension provides text-to-speech (TTS) functionality for Antigravity CLI using the macOS `say` command.
 
 ## Available Tool
 

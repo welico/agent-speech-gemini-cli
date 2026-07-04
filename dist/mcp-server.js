@@ -19747,10 +19747,10 @@ var MCPServer = class {
   }
 };
 
-// src/gemini-cli.ts
-var GeminiCLIIntegration = class {
+// src/antigravity.ts
+var AntigravityIntegration = class {
   static {
-    __name(this, "GeminiCLIIntegration");
+    __name(this, "AntigravityIntegration");
   }
   mcpServer;
   config;
@@ -19796,7 +19796,7 @@ var GeminiCLIIntegration = class {
 
 // src/mcp-server.ts
 async function main() {
-  const integration = new GeminiCLIIntegration();
+  const integration = new AntigravityIntegration();
   await integration.init();
   const shutdown = /* @__PURE__ */ __name(async () => {
     await integration.stop();

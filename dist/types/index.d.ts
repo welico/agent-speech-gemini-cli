@@ -27,6 +27,8 @@ export interface TTSConfig {
     maxLength: number;
     /** Content filtering options */
     filters: FilterConfig;
+    /** Target language for translation before speech */
+    language?: string;
 }
 /**
  * Complete application configuration
@@ -48,7 +50,7 @@ export interface AppConfig {
     maxLength: number;
     /** Content filtering options */
     filters: FilterConfig;
-    /** Language setting for i18n */
+    /** Target language for translation before speech */
     language?: string;
 }
 /**

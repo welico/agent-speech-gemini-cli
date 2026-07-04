@@ -1,16 +1,16 @@
 /**
  * MCP Server entry point
- * This file is executed by Gemini CLI when the extension is loaded
+ * This file is executed by Antigravity CLI when the extension is loaded
  */
 
-import { GeminiCLIIntegration } from './gemini-cli.js';
+import { AntigravityIntegration } from './antigravity.js';
 
 /**
  * Main entry point for MCP server
  * Called via: node dist/mcp-server.js
  */
 async function main(): Promise<void> {
-  const integration = new GeminiCLIIntegration();
+  const integration = new AntigravityIntegration();
   await integration.init();
 
   // Handle shutdown gracefully

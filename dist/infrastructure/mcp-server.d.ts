@@ -9,8 +9,13 @@ export declare class MCPServer {
     stop(): Promise<void>;
     private setupHandlers;
     private setupToolListing;
-    private getToolInputSchema;
+    private getSpeakToolInputSchema;
+    private getControlToolInputSchema;
     private handleSpeak;
+    private ensureVoiceExists;
+    private handleStatus;
+    private formatStatusText;
+    private handleControl;
 }
 export declare function createMCPServer(): Promise<MCPServer>;
 //# sourceMappingURL=mcp-server.d.ts.map

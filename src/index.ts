@@ -1,7 +1,7 @@
 /**
  * Agent Speech Extension - Main package exports
  *
- * A Gemini CLI extension that provides text-to-speech for AI responses
+ * An Antigravity CLI extension that provides text-to-speech for AI responses
  * Platform: macOS
  */
 
@@ -14,8 +14,8 @@ export { ContentFilter } from './core/filter.js';
 export { SayCommand } from './infrastructure/say.js';
 export { MCPServer, createMCPServer } from './infrastructure/mcp-server.js';
 
-// Gemini CLI integration
-export { GeminiCLIIntegration } from './gemini-cli.js';
+// Antigravity CLI integration
+export { AntigravityIntegration } from './antigravity.js';
 
 // Type exports
 export type {

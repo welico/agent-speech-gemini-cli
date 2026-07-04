@@ -19757,10 +19757,10 @@ async function createMCPServer() {
 }
 __name(createMCPServer, "createMCPServer");
 
-// src/gemini-cli.ts
-var GeminiCLIIntegration = class {
+// src/antigravity.ts
+var AntigravityIntegration = class {
   static {
-    __name(this, "GeminiCLIIntegration");
+    __name(this, "AntigravityIntegration");
   }
   mcpServer;
   config;
@@ -19804,9 +19804,9 @@ var GeminiCLIIntegration = class {
   }
 };
 export {
+  AntigravityIntegration,
   ConfigManager,
   ContentFilter,
-  GeminiCLIIntegration,
   MCPServer,
   SayCommand,
   TextToSpeech,

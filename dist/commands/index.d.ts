@@ -9,6 +9,7 @@ export { cmdSetVolume } from './set-volume.js';
 export { cmdListVoices } from './list-voices.js';
 export { cmdReset } from './reset.js';
 export { cmdLanguage } from './language.js';
+export { cmdSetLanguage } from './set-language.js';
 export { cmdMute } from './mute.js';
 export { cmdHelp } from './help.js';
 //# sourceMappingURL=index.d.ts.map

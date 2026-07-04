@@ -1,16 +1,16 @@
 /**
- * Gemini CLI Integration
- * Direct integration with Gemini CLI via MCP server
+ * Antigravity CLI Integration
+ * Direct integration with Antigravity CLI via MCP server
  */
 
 import { MCPServer } from './infrastructure/mcp-server.js';
 import { ConfigManager } from './core/config.js';
 
 /**
- * Gemini CLI integration class
- * Manages MCP server and configuration for Gemini CLI
+ * Antigravity CLI integration class
+ * Manages MCP server and configuration for Antigravity CLI
  */
-export class GeminiCLIIntegration {
+export class AntigravityIntegration {
   private mcpServer: MCPServer;
   private config: ConfigManager;
   private started: boolean = false;

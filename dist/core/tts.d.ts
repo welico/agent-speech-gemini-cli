@@ -5,7 +5,10 @@ export declare class TextToSpeech {
     private enabled;
     private logger;
     constructor();
-    speak(text: string, config: TTSConfig): Promise<void>;
+    speak(text: string, config: TTSConfig): Promise<{
+        spoken: boolean;
+        reason?: string;
+    }>;
     stop(): void;
     getAvailableVoices(): Promise<VoiceInfo[]>;
     isSpeaking(): boolean;

@@ -1,33 +1,33 @@
-# agent-speech-gemini-cli
+# agent-speech-antigravity
 
-[![Version](https://img.shields.io/github/v/release/welico/agent-speech-gemini-cli?label=version)](https://github.com/welico/agent-speech-gemini-cli/releases)
+[![Version](https://img.shields.io/github/v/release/welico/agent-speech-antigravity?label=version)](https://github.com/welico/agent-speech-antigravity/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#prerequisites)
-[![Gemini CLI](https://img.shields.io/badge/Gemini%20CLI-Extension-4285F4.svg)](https://github.com/google-gemini/gemini-cli)
+[![Antigravity CLI](https://img.shields.io/badge/Antigravity%20CLI-Extension-4285F4.svg)](https://antigravity.google)
 [![MCP](https://img.shields.io/badge/MCP-Server-orange.svg)](https://modelcontextprotocol.io/)
 
-> Text-to-speech extension for Gemini CLI using macOS native `say` command.
+> Text-to-speech extension for Antigravity CLI using macOS native `say` command.
 
 ---
 
 ## Installation
 
 ```bash
-gemini extensions install https://github.com/welico/agent-speech-gemini-cli.git
+agy plugin install https://github.com/welico/agent-speech-antigravity
 ```
 
 That's it. The extension is self-contained — no `npm install` or build step needed.
 
 ### Verify
 
-In Gemini CLI, ask:
+In Antigravity CLI, ask:
 
 ```
 Say "Hello World"
 ```
 
-Gemini will use the `speak_text` tool to read the response aloud.
+Antigravity will use the `speak_text` tool to read the response aloud.
 
 ### Slash Command
 
@@ -43,13 +43,13 @@ After install/update, you can run Agent Speech with a slash command:
 
 These slash commands call MCP tools directly and do not require shell-execution approval prompts.
 
-Gemini assistant responses are also spoken automatically after each completed turn.
+Antigravity assistant responses are also spoken automatically after each completed turn.
 Automatic playback uses a concise summary. Use `/agent-speech speak <text>` when you want full text read verbatim.
 
 ### Uninstall
 
 ```bash
-gemini extensions uninstall agent-speech
+agy plugin uninstall agent-speech
 ```
 
 ---
@@ -62,7 +62,7 @@ gemini extensions uninstall agent-speech
 - **Auto Translation** — Translates responses to configured language before speech (Google free translate endpoint)
 - **Privacy-Conscious** — Optional sensitive content filtering
 - **Self-Contained** — All dependencies bundled, installs from git in one command
-- **Auto Read Responses** — AfterAgent hook reads completed Gemini responses aloud
+- **Auto Read Responses** — AfterAgent hook reads completed Antigravity responses aloud
 - **Summary Playback** — Automatic response speech reads a concise summary instead of full raw output
 
 ---
@@ -73,7 +73,7 @@ gemini extensions uninstall agent-speech
 |---|---|
 | macOS | 10.15+ (Catalina or later) |
 | Node.js | 18+ |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Latest |
+| [Antigravity CLI](https://antigravity.google) | Latest |
 
 ---
 
@@ -155,20 +155,20 @@ Convert text to speech using macOS TTS.
 ### Manual (MCP server config)
 
 ```bash
-git clone https://github.com/welico/agent-speech-gemini-cli.git
-cd agent-speech-gemini-cli
+git clone https://github.com/welico/agent-speech-antigravity.git
+cd agent-speech-antigravity
 npm install
 npm run build
 ```
 
-Add to your Gemini CLI settings (`~/.gemini/settings.json`):
+Add to your Antigravity CLI settings (`~/.gemini/antigravity-cli/settings.json`):
 
 ```json
 {
   "mcpServers": {
     "agent-speech": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/agent-speech-gemini-cli/dist/mcp-server.js"]
+      "args": ["/ABSOLUTE/PATH/TO/agent-speech-antigravity/dist/mcp-server.js"]
     }
   }
 }
@@ -189,7 +189,7 @@ npm run dev          # Watch mode (tsc)
 ### Project Structure
 
 ```
-agent-speech-gemini-cli/
+agent-speech-antigravity/
 ├── src/
 │   ├── core/              # Core TTS logic
 │   │   ├── tts.ts         # Text-to-speech engine
@@ -202,7 +202,7 @@ agent-speech-gemini-cli/
 │   ├── commands/          # CLI commands
 │   ├── utils/             # Utilities (logger, schemas, formatting)
 │   ├── types/             # TypeScript type definitions
-│   ├── gemini-cli.ts      # Gemini CLI integration class
+│   ├── antigravity.ts     # Antigravity CLI integration class
 │   ├── mcp-server.ts      # MCP server entry point
 │   ├── cli.ts             # CLI entry point
 │   └── index.ts           # Package exports
@@ -210,7 +210,7 @@ agent-speech-gemini-cli/
 │   └── agent-speech.toml  # Slash command: /agent-speech <args>
 ├── esbuild.config.mjs     # Build config (bundles all deps)
 ├── gemini-extension.json   # Gemini CLI extension manifest
-├── GEMINI.md               # Extension context file
+├── ANTIGRAVITY.md          # Extension context file
 └── dist/                   # Bundled output (committed)
 ```
 
@@ -220,15 +220,15 @@ agent-speech-gemini-cli/
 
 ### Extension not loading
 
-1. Verify the extension is installed: `gemini extensions list`
-2. Reinstall: `gemini extensions uninstall agent-speech && gemini extensions install https://github.com/welico/agent-speech-gemini-cli.git`
-3. Restart Gemini CLI after installation
+1. Verify the extension is installed: `agy plugin list`
+2. Reinstall: `agy plugin uninstall agent-speech && agy plugin install https://github.com/welico/agent-speech-antigravity`
+3. Restart Antigravity CLI after installation
 
 ### MCP approval prompt appears
 
-Gemini CLI does not allow extensions to auto-set `trust: true` in extension-managed MCP server config.
+Antigravity CLI does not allow extensions to auto-set `trust: true` in extension-managed MCP server config.
 
-For user-level always-allow behavior, configure Gemini policy/settings locally:
+For user-level always-allow behavior, configure Antigravity policy/settings locally:
 
 ```json
 {
@@ -238,7 +238,7 @@ For user-level always-allow behavior, configure Gemini policy/settings locally:
 }
 ```
 
-Then add a policy file in `~/.gemini/policies/agent-speech.toml`:
+Then add a policy file in `~/.gemini/antigravity-cli/policies/agent-speech.toml`:
 
 ```toml
 [[rule]]
